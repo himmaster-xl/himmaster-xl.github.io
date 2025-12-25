@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>大学生学籍信息管理系统（含登录与角色控制）</title>
+<style>
+  :root{--bg:#f4f7fb;--card:#fff;--primary:#0d6efd;--muted:#6c757d;--danger:#dc3545;--radius:10px;font-family:"Microsoft YaHei",Segoe UI,Arial,sans-serif}
+  body{margin:0;background:var(--bg);padding:20px;display:flex;justify-content:center}
+  .wrap{width:100%;max-width:1000px;background:var(--card);border-radius:12px;padding:46px 22px 22px;box-shadow:0 8px 30px rgba(10,20,40,0.06)}
+  h1{margin:0 0 12px;text-align:center}
+  .view{display:none}
+  .view.active{display:block}
+  form .row{display:flex;gap:12px;margin-bottom:10px}
+  .col{flex:1;min-width:0}
+  label{display:block;margin-bottom:6px;font-weight:600;color:#222}
+  input,select,textarea{width:100%;padding:9px 10px;border-radius:8px;border:1px solid #e6ecf2;font-size:14px;box-sizing:border-box}
+  textarea{resize:vertical}
+  .radio-row{display:flex;gap:12px;align-items:center}
+  .btns{text-align:center;margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  button{padding:9px 14px;border-radius:8px;border:0;font-weight:600;cursor:pointer}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-muted{background:#6c757d;color:#fff}
+  .btn-danger{background:var(--danger);color:#fff}
+  .hint{font-size:13px;color:var(--muted);text-align:center;margin-top:8px}
+  .error{color:var(--danger);font-size:13px;margin-top:6px}
+  .list-panel{margin-top:18px;border-top:1px dashed #eef2f6;padding-top:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 10px;border:1px solid #f0f3f6;text-align:left}
+  th{background:#fbfcff}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  .small{font-size:13px;color:#555}
+  .topbar{position:relative;display:flex;justify-content:center;align-items:center;margin-bottom:12px;gap:8px}
+  .topbar h1{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;text-align:center}
+  /* 信息图标与提示 */
+  .info-icon{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#ffd966;color:#7a4b00;font-weight:700;margin-left:8px;cursor:pointer}
+  .info-tooltip{position:absolute;background:#fff8e6;border:1px solid #fde2a8;padding:8px 10px;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,0.06);font-size:13px;color:#7a4b00;z-index:300;pointer-events:auto}
+  .nav{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;gap:8px;align-items:center}
+  /* 用户头像与弹窗 */
+  .user-widget{display:flex;flex-direction:column;align-items:center;cursor:pointer;margin-top:48px}
+  .avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+  .avatar.admin{background:#cfe8ff;color:#0b66d1}
+  .avatar.student{background:#e6f8ea;color:#1f7a3f}
+  .avatar-label{font-size:12px;color:#555;margin-top:6px;text-align:center}
+  .user-popup{position:absolute;right:0;top:60px;background:#fff;border:1px solid #e6ecf2;border-radius:8px;padding:10px;box-shadow:0 8px 24px rgba(10,20,40,0.08);min-width:160px;z-index:80}
+  .user-popup .small{color:#333}
+  .btn-logout{background:#ff4d4f;color:#fff;border:0;padding:6px 10px;border-radius:8px;cursor:pointer}
+  .btn-logout:hover{opacity:0.95;transform:translateY(-1px)}
+  .login-choices{display:flex;gap:12px;margin-top:8px}
+  .choice-box{flex:1;padding:18px;border:1px solid #e6ecf2;border-radius:10px;background:#fff;cursor:pointer;box-shadow:0 4px 12px rgba(10,20,40,0.04);transition:all .18s}
+  .choice-box h3{margin:0 0 8px;font-size:16px}
+  .choice-box.active{background:#e8f1ff;border-color:#bcd9ff;box-shadow:0 6px 18px rgba(11,86,217,0.06)}
+  /* 增加登录页间距，使布局更宽松 */
+  #loginView .row{margin-bottom:18px}
+  #loginView .login-choices{gap:18px}
+  #loginView .choice-box{padding:22px 20px;min-height:110px}
+  #loginView .choice-box p.small{margin-top:8px}
+  #loginForm{padding:12px 0 18px}
+  #loginForm .btns{margin-top:18px}
+  .subtitle{width:100%;text-align:center;margin:40px 0 24px;font-size:16px;color:#555;line-height:1.6}
+  /* 增加登录页顶部间距，拉开欢迎语与后续内容的间隔 */
+  #loginView{margin-top:12px}
+  .badge{font-size:13px;color:#fff;background:#888;padding:6px 8px;border-radius:8px}
+  @media(max-width:760px){.row{flex-direction:column}}
+  /* 成功页样式：浅绿色方框与对勾 */
+  .success-box{background:#ecf9f0;border:1px solid #cfeeda;padding:18px;border-radius:12px;display:flex;flex-direction:column;align-items:center}
+  .success-head h2{margin:0;color:#1f7a3f;font-size:20px;display:flex;align-items:center;gap:10px}
+  .checkmark{background:#28a745;color:#fff;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 6px 16px rgba(40,167,69,0.12)}
+  .success-body .tiny{font-size:13px;color:#356644;margin-top:8px}
+  /* 管理页：缩小顶部三个操作按钮 */
+  #manageView .actions button{padding:6px 10px;font-size:13px;border-radius:6px}
+  #manageView .actions{gap:6px}
+  /* 无数据样式：居中并放大 */
+  #listContainer .no-data{font-size:16px;color:#666;text-align:center;padding:24px 0}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <h1>大学生学籍信息管理系统 <span id="infoIcon" class="info-icon" tabindex="0" role="button" aria-label="使用说明">!</span></h1>
+      <div id="infoTooltip" class="info-tooltip" style="display:none">正式投入使用前的使用说明，点击查看</div>
+      <div class="nav" id="navBar" style="display:none">
+        <div id="userArea" style="position:relative">
+          <div class="user-widget" id="userWidget">
+            <div id="userAvatar" class="avatar"></div>
+            <div id="avatarLabel" class="avatar-label">用户</div>
+          </div>
+          <div id="userPopup" class="user-popup" style="display:none">
+            <div id="popupId" class="small"></div>
+            <div style="margin-top:8px;text-align:right">
+              <button id="navLogoutBtn" class="btn-logout">登出</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subtitle">欢迎进入学籍信息信息录入页面</div>
+
+    <!-- 登录页 -->
+    <div id="loginView" class="view active">
+      <form id="loginForm">
+        <div class="row">
+          <div class="col">
+            <label>您要以什么方式登录？</label>
+            <input type="hidden" name="role" id="loginRole" value="student">
+            <div class="login-choices">
+              <div class="choice-box active" id="studentBox" tabindex="0" role="button">
+                <h3>以学生方式登录</h3>
+                <p class="small">使用学号快速登录，输入学号密码以进行学籍信息录入。</p>
+              </div>
+              <div class="choice-box" id="adminBox" tabindex="0" role="button">
+                <h3>以管理员方式登录</h3>
+                <p class="small">管理员账户登录，拥有信息管理权限，可以对学籍信息进行删除修改以及再录入。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="studentLoginFields">
+          <div class="row">
+            <div class="col">
+              <label for="loginStudentId">学生学号</label>
+              <input id="loginStudentId" name="loginStudentId" type="text" maxlength="10" placeholder="学号（10位数字）">
+              <div class="error" id="err-loginStudentId"></div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="loginStudentPass">密码</label>
+              <input id="loginStudentPass" name="loginStudentPass" type="password" placeholder="请输入密码（默认 123456）">
+              <div class="small hint">注意：初始密码为 <code>123456</code>，首次登录后须修改。</div>
+              <div class="error" id="err-loginStudentPass"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="adminLoginFields" style="display:none">
+          <div class="row">
+            <div class="col">
+              <label for="adminUser">管理员用户名</label>
+              <input id="adminUser" name="adminUser" type="text" placeholder="管理员用户名">
+            </div>
+            <div class="col">
+              <label for="adminPass">密码</label>
+              <input id="adminPass" name="adminPass" type="password" placeholder="管理员密码">
+            </div>
+          </div>
+          <!-- 默认管理员：admin admin123 -->
+          <div class="error" id="err-admin"></div>
+        </div>
+
+        <div class="btns">
+          <button type="submit" class="btn-primary">登录</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 使用说明模态（已移除重置功能） -->
+
+    <!-- 主界面：录入页（所有已登录用户可访问） -->
+    <div id="entryView" class="view">
+      <h2>学生信息录入</h2>
+
+      <form id="studentForm" novalidate>
+        <div class="row">
+          <div class="col">
+            <label for="studentId">学号 <span class="small">(10位数字)</span></label>
+            <input id="studentId" name="studentId" type="text" inputmode="numeric" maxlength="10" required>
+            <div class="error" id="err-studentId"></div>
+          </div>
+          <div class="col">
+            <label for="name">姓名</label>
+            <input id="name" name="name" type="text" required>
+            <div class="error" id="err-name"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label for="gender">性别</label>
+            <select id="gender" name="gender" required>
+              <option value="">请选择性别</option>
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+            <div class="error" id="err-gender"></div>
+          </div>
+          <div class="col">
+            <label for="birthDate">出生日期</label>
+            <input id="birthDate" name="birthDate" type="date" required>
+            <div class="error" id="err-birthDate"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label for="nation">民族</label>
+            <select id="nation" name="nation">
+              <option value="">请选择民族</option>
+              <option>汉族</option><option>蒙古族</option><option>回族</option><option>藏族</option><option>维吾尔族</option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="idCard">身份证号</label>
+            <input id="idCard" name="idCard" type="text" maxlength="18" required>
+            <div class="error" id="err-idCard"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label for="address">家庭住址</label>
+            <textarea id="address" name="address" rows="2"></textarea>
+          </div>
+          <div class="col">
+            <label for="phone">联系电话</label>
+            <input id="phone" name="phone" type="tel" maxlength="11" required>
+            <div class="error" id="err-phone"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label for="college">所在学院</label>
+            <select id="college" name="college" required>
+              <option value="">请选择学院</option>
+              <option>计算机学院</option><option>机械工程学院</option><option>经济管理学院</option>
+              <option>外国语学院</option><option>医学院</option><option>艺术学院</option><option>理学院</option><option>文学院</option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="major">专业</label>
+            <input id="major" name="major" type="text" required placeholder="如: 计算机科学与技术">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label for="grade">年级</label>
+            <select id="grade" name="grade" required>
+              <option value="">请选择年级</option><option>2024</option><option>2023</option><option>2022</option><option>2021</option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="className">班级</label>
+            <input id="className" name="class" type="text" required placeholder="如: 计科2001">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label for="enrollmentDate">入学日期</label>
+            <input id="enrollmentDate" name="enrollmentDate" type="date" required>
+          </div>
+          <div class="col">
+            <label for="email">电子邮箱</label>
+            <input id="email" name="email" type="email" placeholder="选填">
+          </div>
+        </div>
+
+        <div class="btns">
+          <button type="submit" class="btn-primary" id="submitBtn">提交信息</button>
+          <button type="reset" class="btn-logout">重置表单</button>
+          <button type="button" class="btn-primary" id="toManageBtn" style="display:none">进入信息管理页面</button>
+          <button type="button" class="btn-logout" id="backToLoginEntry">返回登录</button>
+        </div>
+
+
+      </form>
+    </div>
+
+    <!-- 管理页（仅管理员可见） -->
+    <div id="manageView" class="view">
+      <h2>信息管理（管理员）</h2>
+
+        <div class="actions" style="justify-content:flex-end;margin-bottom:8px">
+        <button id="clearAll" class="btn-logout">清空所有记录</button>
+        <button id="continueEntryBtn" class="btn-primary" style="margin-left:8px">继续录入学生信息</button>
+        <button id="backToLoginManage" class="btn-logout" style="margin-left:8px">返回登录</button>
+      </div>
+
+      <div id="listContainer" class="small">未加载数据。</div>
+    </div>
+
+    <!-- 密码修改页（学生首次登录强制修改） -->
+    <div id="changePwdView" class="view">
+      <h2>首次登录 — 修改密码</h2>
+      <form id="changePwdForm">
+        <div class="row">
+          <div class="col">
+            <label for="newPwd">新密码</label>
+            <input id="newPwd" name="newPwd" type="password" placeholder="至少6位且包含一个英文字母" required>
+            <div class="error" id="err-newPwd"></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label for="confirmPwd">确认新密码</label>
+            <input id="confirmPwd" name="confirmPwd" type="password" placeholder="再次输入新密码" required>
+            <div class="error" id="err-confirmPwd"></div>
+          </div>
+        </div>
+        <div class="btns">
+          <button type="submit" class="btn-primary">保存并进入录入页面</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 操作成功页 -->
+    <div id="successView" class="view">
+      <div class="success-box" role="status" aria-live="polite">
+        <div class="success-head">
+          <h2>学生信息录入成功 <span class="checkmark">✔</span></h2>
+        </div>
+        <div class="success-body">
+          <p id="successMsg" class="small">学籍信息已保存成功。</p>
+          <p class="tiny">联系学校教师以确认信息输入是否准确无误。</p>
+        </div>
+      </div>
+
+      <div id="studentCountdown" class="small" style="text-align:center;margin-top:10px;display:none"></div>
+
+      <div class="btns" style="margin-top:12px;text-align:center">
+        <button id="successConfirm" class="btn-primary" style="display:none">确认</button>
+        <button id="successContinue" class="btn-primary" style="display:none">继续录入</button>
+        <button id="successViewAll" class="btn-muted" style="display:none">查看全部学生信息</button>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+(function(){
+  // 验证正则
+  const reStudentId = /^\d{10}$/;
+  const reIdCard = /^\d{17}[\dXx]$/;
+  const rePhone = /^1[3-9]\d{9}$/;
+
+  const STORAGE_KEY = 'students_demo_v1';
+  const PW_MAP_KEY = 'students_pw_map_v1';
+  const DEFAULT_STUDENT_PW = '123456';
+
+  // 简单管理员凭据（示例，可按需修改或替换为真正的后端验证）
+  const ADMIN_CREDENTIALS = {user:'admin', pass:'admin123'};
+
+  // DOM
+  const loginView = document.getElementById('loginView');
+  const entryView = document.getElementById('entryView');
+  const manageView = document.getElementById('manageView');
+  const changePwdView = document.getElementById('changePwdView');
+  const navBar = document.getElementById('navBar');
+  const userArea = document.getElementById('userArea');
+  const userWidget = document.getElementById('userWidget');
+  const userAvatar = document.getElementById('userAvatar');
+  const avatarLabel = document.getElementById('avatarLabel');
+  const userPopup = document.getElementById('userPopup');
+  const popupId = document.getElementById('popupId');
+  const navLogoutBtn = document.getElementById('navLogoutBtn');
+  const toManageBtn = document.getElementById('toManageBtn');
+
+  // login form elements
+  const loginForm = document.getElementById('loginForm');
+  const adminLoginFields = document.getElementById('adminLoginFields');
+  const studentLoginFields = document.getElementById('studentLoginFields');
+
+  // entry form
+  const form = document.getElementById('studentForm');
+
+  // helpers for storage
+  function loadList(){ try{ const raw = localStorage.getItem(STORAGE_KEY); return raw?JSON.parse(raw):[]; }catch(e){ console.error(e); return []; } }
+  function saveList(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+  function addStudent(s){ const list = loadList(); list.unshift(s); saveList(list); }
+  function updateStudent(index, s){ const list = loadList(); if(list[index]){ list[index]=s; saveList(list); } }
+  function deleteStudent(index){ const list = loadList(); list.splice(index,1); saveList(list); }
+  function clearStudents(){ localStorage.removeItem(STORAGE_KEY); }
+
+  // password map helpers (studentId -> password)
+  function loadPwMap(){ try{ const raw = localStorage.getItem(PW_MAP_KEY); return raw?JSON.parse(raw):{}; }catch(e){ console.error(e); return {}; } }
+  function savePwMap(map){ localStorage.setItem(PW_MAP_KEY, JSON.stringify(map)); }
+  function getStoredPassword(studentId){ const map = loadPwMap(); return map[studentId]; }
+  function setStoredPassword(studentId, pwd){ const map = loadPwMap(); map[studentId]=pwd; savePwMap(map); }
+
+  // UI helpers
+  function showView(viewId){
+    [loginView, entryView, manageView, changePwdView, document.getElementById('successView')].forEach(v=>v && v.classList.remove('active'));
+    const el = document.getElementById(viewId);
+    if(el) el.classList.add('active');
+    // 当切换视图时，只有在登录页才显示使用说明提示；其它视图隐藏并停止闪烁
+    try{
+      const infoTooltip = document.getElementById('infoTooltip');
+      const infoIcon = document.getElementById('infoIcon');
+      if(viewId === 'loginView'){
+        if(infoIcon) infoIcon.style.display = 'inline-flex';
+        // 动态定位并开始闪烁提示
+        if(typeof positionTooltip === 'function') positionTooltip();
+        if(typeof showInfoTooltip === 'function') showInfoTooltip();
+      } else {
+        if(infoIcon) infoIcon.style.display = 'none';
+        if(infoTooltip) infoTooltip.style.display = 'none';
+        try{ if(_infoBlinkTimer){ clearTimeout(_infoBlinkTimer); _infoBlinkTimer = null; } }catch(e){}
+        try{ if(window._infoBlinkTimer){ clearTimeout(window._infoBlinkTimer); window._infoBlinkTimer = null; } }catch(e){}
+      }
+    }catch(e){ /* ignore */ }
+  }
+
+  function currentUser(){ return JSON.parse(sessionStorage.getItem('user') || 'null'); }
+  function setUser(u){ sessionStorage.setItem('user', JSON.stringify(u)); updateNav(); }
+  function clearUser(){ sessionStorage.removeItem('user'); updateNav(); }
+
+  function updateNav(){
+    const u = currentUser();
+    if(u){
+      navBar.style.display = 'flex';
+      // 设置头像样式与弹窗内容
+      if(u.role === 'admin'){
+        userAvatar.className = 'avatar admin';
+        userAvatar.textContent = 'A';
+        avatarLabel.textContent = '管理员';
+        popupId.textContent = (u.name||u.user||'admin');
+      } else {
+        userAvatar.className = 'avatar student';
+        // 用学号末四位作为头像显示内容，若无则显示“S”
+        userAvatar.textContent = (u.studentId && u.studentId.slice(-4)) || 'S';
+        avatarLabel.textContent = '学生';
+        popupId.textContent = u.studentId || '';
+      }
+    } else {
+      navBar.style.display = 'none';
+      // hide popup
+      if(userPopup) userPopup.style.display = 'none';
+    }
+  }
+
+  // Initialize: check session
+  (function init(){
+    const u = currentUser();
+    if(u){
+      enterAfterLogin(u);
+    } else {
+      showView('loginView');
+    }
+  })();
+
+  // 用户头像点击行为：显示/隐藏弹窗；点击任意其他区域关闭弹窗
+  if(userWidget){
+    userWidget.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(userPopup.style.display === 'block') userPopup.style.display = 'none';
+      else userPopup.style.display = 'block';
+    });
+  }
+  // 信息图标与使用说明提示行为（已移除重置功能）
+  const infoIcon = document.getElementById('infoIcon');
+  const infoTooltip = document.getElementById('infoTooltip');
+
+  function positionTooltip(){
+    if(!infoIcon || !infoTooltip) return;
+    const topbar = document.querySelector('.topbar');
+    const iconRect = infoIcon.getBoundingClientRect();
+    const containerRect = topbar.getBoundingClientRect();
+    const left = iconRect.left - containerRect.left + iconRect.width/2;
+    const top = iconRect.bottom - containerRect.top + 6; // 6px gap
+    infoTooltip.style.left = left + 'px';
+    infoTooltip.style.top = top + 'px';
+    infoTooltip.style.transform = 'translateX(-50%)';
+    infoTooltip.style.zIndex = 400;
+  }
+
+  // 闪烁提示：逐渐变慢的闪烁逻辑（递归 setTimeout）
+  let _infoBlinkTimer = null;
+  function showInfoTooltip(totalMs = 30000){
+    if(!infoTooltip || !infoIcon) return;
+    positionTooltip();
+    // 总时长（毫秒）默认 30000（30s）
+    const TOTAL_MS = totalMs;
+    // 初始整轮时长（显示+隐藏）为 3000ms（2s 显示 + 1s 隐藏）
+    let cycleMs = 3000;
+    // 显示部分占整轮的比例（保持原先 2s/3s 的比例）
+    const visibleRatio = 2 / 3;
+    // 每轮增长的时长，使闪烁逐步放慢
+    const growthPerCycle = 300; // 毫秒
+
+    // 清理可能存在的旧定时器
+    if(_infoBlinkTimer){ clearTimeout(_infoBlinkTimer); _infoBlinkTimer = null; }
+
+    let elapsed = 0;
+
+    function runCycle(){
+      if(elapsed >= TOTAL_MS){
+        infoTooltip.style.display = 'none';
+        _infoBlinkTimer = null;
+        return;
+      }
+
+      const visibleMs = Math.max(100, Math.round(cycleMs * visibleRatio));
+      const hiddenMs = Math.max(100, cycleMs - visibleMs);
+
+      // 显示阶段
+      infoTooltip.style.display = 'block';
+      _infoBlinkTimer = setTimeout(()=>{
+        elapsed += visibleMs;
+        if(elapsed >= TOTAL_MS){
+          infoTooltip.style.display = 'none';
+          _infoBlinkTimer = null;
+          return;
+        }
+
+        // 隐藏阶段
+        infoTooltip.style.display = 'none';
+        _infoBlinkTimer = setTimeout(()=>{
+          elapsed += hiddenMs;
+          // 为下一轮增大周期长度
+          cycleMs += growthPerCycle;
+          runCycle();
+        }, hiddenMs);
+      }, visibleMs);
+    }
+
+    // 启动第一轮（立即运行）
+    runCycle();
+  }
+
+  const usageText = '正式使用前说明：初始学生录入需要使用默认密码 123456，首次登录后请修改密码。管理员账号：admin，默认密码：admin123（不可更改）。';
+  if(infoIcon){
+    infoIcon.addEventListener('click', ()=>{ if(_infoBlinkTimer){ clearTimeout(_infoBlinkTimer); _infoBlinkTimer=null; } if(infoTooltip) infoTooltip.style.display = 'none'; alert(usageText); });
+    infoIcon.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); infoIcon.click(); } });
+  }
+  if(infoTooltip){ infoTooltip.addEventListener('click', ()=>{ if(_infoBlinkTimer){ clearTimeout(_infoBlinkTimer); _infoBlinkTimer=null; } alert(usageText); if(infoTooltip) infoTooltip.style.display = 'none'; }); }
+
+  // reposition tooltip on resize
+  window.addEventListener('resize', positionTooltip);
+  // 初始不自动触发，在 showView('loginView') 时启动（见 showView 内逻辑）
+  document.addEventListener('click', function(){ if(userPopup) userPopup.style.display = 'none'; });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && userPopup) userPopup.style.display = 'none'; });
+
+  if(navLogoutBtn){
+    navLogoutBtn.addEventListener('click', function(){
+      if(confirm('确定要登出吗？')){
+        // close popup then logout
+        if(userPopup) userPopup.style.display = 'none';
+        clearUser();
+        showView('loginView');
+        loginForm.reset();
+        form.reset();
+        adminLoginFields.style.display = 'none';
+        studentLoginFields.style.display = 'block';
+        navBar.style.display = 'none';
+      }
+    });
+  }
+
+  // Login choice boxes behavior: 点击/键盘选择学生或管理员
+  const loginRoleInput = document.getElementById('loginRole');
+  const studentBox = document.getElementById('studentBox');
+  const adminBox = document.getElementById('adminBox');
+  function selectRole(role){
+    loginRoleInput.value = role;
+    if(role === 'admin'){
+      adminLoginFields.style.display = 'block';
+      studentLoginFields.style.display = 'none';
+      adminBox.classList.add('active');
+      studentBox.classList.remove('active');
+    } else {
+      adminLoginFields.style.display = 'none';
+      studentLoginFields.style.display = 'block';
+      adminBox.classList.remove('active');
+      studentBox.classList.add('active');
+    }
+  }
+  studentBox.addEventListener('click', ()=> selectRole('student'));
+  adminBox.addEventListener('click', ()=> selectRole('admin'));
+  studentBox.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); selectRole('student'); }});
+  adminBox.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); selectRole('admin'); }});
+  // 默认选择
+  selectRole(loginRoleInput.value || 'student');
+
+  // Handle login submit
+  loginForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    // clear previous errors
+    document.getElementById('err-admin').textContent = '';
+    document.getElementById('err-loginStudentId').textContent = '';
+
+    const role = document.getElementById('loginRole').value;
+    if(role === 'admin'){
+      const user = document.getElementById('adminUser').value.trim();
+      const pass = document.getElementById('adminPass').value;
+      if(user === ADMIN_CREDENTIALS.user && pass === ADMIN_CREDENTIALS.pass){
+        const u = {role:'admin', user:user, name:user};
+        setUser(u);
+        enterAfterLogin(u);
+      } else {
+        document.getElementById('err-admin').textContent = '管理员用户名或密码不正确';
+      }
+    } else {
+      const sid = document.getElementById('loginStudentId').value.trim();
+      const pass = (document.getElementById('loginStudentPass') || {}).value || '';
+      if(!reStudentId.test(sid)){
+        document.getElementById('err-loginStudentId').textContent = '学号应为10位数字';
+        return;
+      }
+      // check password: if stored password exists, require it; otherwise require default password
+      const stored = getStoredPassword(sid);
+      const ok = stored ? (pass === stored) : (pass === DEFAULT_STUDENT_PW);
+      if(!ok){
+        document.getElementById('err-loginStudentPass').textContent = '学号或密码错误（如果忘记密码请联系学校教师）';
+        return;
+      }
+      // login success
+      const u = {role:'student', studentId:sid};
+      setUser(u);
+      // if no stored password or stored equals default, force password change
+      if(!stored || stored === DEFAULT_STUDENT_PW){
+        showView('changePwdView');
+      } else {
+        enterAfterLogin(u);
+      }
+    }
+  });
+
+  // After login: show entry view and configure access
+  function enterAfterLogin(u){
+    updateNav();
+    // Admins go directly to 管理页; students go to 录入页
+    if(u.role === 'admin'){
+      toManageBtn.style.display = 'inline-block';
+      renderManageTable();
+      showView('manageView');
+    } else {
+      // student: 如果已有学籍记录则视为编辑（预填表单并设置 editIndex），否则为新建
+      toManageBtn.style.display = 'none';
+      const list = loadList();
+      const sid = (u.studentId || '').toString();
+      const idx = list.findIndex(s => s && String(s.studentId) === sid);
+      if(idx !== -1){
+        loadIntoForm(idx);
+      } else {
+        delete form.dataset.editIndex;
+        form.reset();
+        form.studentId.value = sid;
+      }
+      showView('entryView');
+      setTimeout(()=>{ document.getElementById('studentId').focus(); }, 100);
+    }
+
+    // make nav visible
+    navBar.style.display = 'flex';
+  }
+
+  
+
+  // Entry form validation & submit
+  const err = (id,msg)=>{ const e=document.getElementById('err-'+id); if(e) e.textContent=msg||''; };
+  const clearAllErrors = ()=>['studentId','name','gender','birthDate','idCard','phone'].forEach(k=>err(k,''));
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    clearAllErrors();
+
+    const data = new FormData(form);
+    const obj = Object.fromEntries(data.entries());
+    if(!obj.gender){
+      err('gender','请选择性别');
+    }
+
+    let hasErr = false;
+    if(!reStudentId.test(obj.studentId || '')){ err('studentId','学号应为10位数字'); hasErr = true; }
+    if(!(obj.name && obj.name.trim().length>=1)){ err('name','请输入姓名'); hasErr = true; }
+    if(!reIdCard.test(obj.idCard || '')){ err('idCard','身份证号格式不正确（18位）'); hasErr = true; }
+    if(!rePhone.test(obj.phone || '')){ err('phone','手机号格式不正确'); hasErr = true; }
+    if(hasErr) return;
+
+    // 学号唯一性检查：新增时不允许与已有学号重复；编辑时允许保留当前记录但不允许改为已存在的其他学号
+    const listForCheck = loadList();
+    const editingFlag = typeof form.dataset.editIndex !== 'undefined';
+    if(editingFlag){
+      const editIdx = parseInt(form.dataset.editIndex, 10);
+      const conflict = listForCheck.findIndex((s,i)=> s && String(s.studentId) === obj.studentId && i !== editIdx);
+      if(conflict !== -1){ err('studentId','该学号已存在，学号必须唯一'); return; }
+    } else {
+      const exists = listForCheck.some(s => s && String(s.studentId) === obj.studentId);
+      if(exists){ err('studentId','该学号已存在，学号必须唯一'); return; }
+    }
+
+    obj.studentId = obj.studentId.trim();
+    obj.name = obj.name.trim();
+    obj.idCard = obj.idCard.trim();
+    obj.phone = obj.phone.trim();
+
+    // Save: allow both student and admin to save
+    setTimeout(()=>{
+      // support edit if dataset.editIndex exists
+      if(typeof form.dataset.editIndex !== 'undefined'){
+        const idx = parseInt(form.dataset.editIndex, 10);
+        if(!isNaN(idx)){
+          updateStudent(idx, obj);
+          delete form.dataset.editIndex;
+        } else {
+          addStudent(obj);
+        }
+      } else {
+        addStudent(obj);
+      }
+
+      // remember last saved student for success view and potential prefill
+      try{ sessionStorage.setItem('last_saved_student', JSON.stringify(obj)); }catch(e){ console.warn('sessionStorage not available', e); }
+
+      // reset form display
+      form.reset();
+      // If logged-in student, keep their studentId in the form (hidden use)
+      const u = currentUser();
+      if(u && u.role === 'student'){
+        form.studentId.value = u.studentId || '';
+      }
+      // if admin is viewing manageView, refresh table
+      const u2 = currentUser();
+      if(u2 && u2.role === 'admin' && manageView.classList.contains('active')){
+        renderManageTable();
+      }
+
+      // show success page with role-specific options
+      showSuccessView();
+    }, 150);
+  });
+
+  // 管理页访问：由 entry 的按钮触发（仅 admin 可见）
+  toManageBtn.addEventListener('click', ()=>{
+    const u = currentUser();
+    if(!u || u.role !== 'admin'){
+      alert('只有管理员可以进入管理页面');
+      return;
+    }
+    renderManageTable();
+    showView('manageView');
+  });
+
+  // 管理页面功能：渲染表格
+  function renderManageTable(){
+    const container = document.getElementById('listContainer');
+    const list = loadList();
+    if(!list.length){ container.innerHTML = '<div class="no-data">没有数据。</div>'; return; }
+    let html = '<table><thead><tr><th>#</th><th>学号</th><th>姓名</th><th>性别</th><th>院系</th><th>专业</th><th>班级</th><th>手机号</th><th>操作</th></tr></thead><tbody>';
+    list.forEach((s,i)=>{
+      html += `<tr>
+        <td>${i+1}</td>
+        <td>${escapeHtml(s.studentId)}</td>
+        <td>${escapeHtml(s.name)}</td>
+        <td>${escapeHtml(s.gender||'')}</td>
+        <td>${escapeHtml(s.college||'')}</td>
+        <td>${escapeHtml(s.major||'')}</td>
+        <td>${escapeHtml(s.class||'')}</td>
+        <td>${escapeHtml(s.phone||'')}</td>
+        <td>
+          <button data-act="edit" data-i="${i}">编辑</button>
+          <button data-act="del" data-i="${i}" style="margin-left:6px">删除</button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    // attach handlers
+    container.querySelectorAll('button[data-act]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        const act = btn.getAttribute('data-act');
+        const i = parseInt(btn.getAttribute('data-i'),10);
+        if(act==='del'){ if(confirm('确定删除此条记录？')){ deleteStudent(i); renderManageTable(); } }
+        if(act==='edit'){ loadIntoForm(i); showView('entryView'); }
+      });
+    });
+  }
+
+  // 编辑：把记录装入录入表单
+  function loadIntoForm(index){
+    const list = loadList();
+    const s = list[index];
+    if(!s) return;
+    form.studentId.value = s.studentId || '';
+    form.name.value = s.name || '';
+    // 性别改为下拉：直接设置 select 的 value
+    try{ form.gender.value = s.gender || ''; }catch(e){}
+    form.birthDate.value = s.birthDate || '';
+    form.nation.value = s.nation || '';
+    form.idCard.value = s.idCard || '';
+    form.address.value = s.address || '';
+    form.phone.value = s.phone || '';
+    form.college.value = s.college || '';
+    form.major.value = s.major || '';
+    form.grade.value = s.grade || '';
+    form.className.value = s.class || '';
+    form.enrollmentDate.value = s.enrollmentDate || '';
+    form.email.value = s.email || '';
+
+    // set editing marker on form element
+    form.dataset.editIndex = index;
+  }
+
+  // clear all records
+  document.getElementById('clearAll').addEventListener('click', ()=>{
+    if(confirm('确定要清空所有本地记录吗？此操作不可恢复。')){
+      clearStudents();
+      renderManageTable();
+    }
+  });
+
+  // 管理页：继续录入按钮（管理员从管理页跳回录入页）
+  const continueEntryBtn = document.getElementById('continueEntryBtn');
+  if(continueEntryBtn){
+    continueEntryBtn.addEventListener('click', ()=>{
+      // 清空表单编辑状态并重置表单
+      delete form.dataset.editIndex;
+      form.reset();
+      // 若管理员返回录入页，保留其身份（不登出）
+      const u = currentUser();
+      if(u && u.role === 'admin'){
+        toManageBtn.style.display = 'inline-block';
+      }
+      // 切换视图到录入页并聚焦学号输入
+      showView('entryView');
+      setTimeout(()=>{ document.getElementById('studentId').focus(); }, 100);
+    });
+  }
+
+  // 返回登录按钮行为（会登出并返回登录页）
+  function returnToLogin(){
+    if(confirm('返回登录将登出当前用户，确定吗？')){
+      clearUser();
+      showView('loginView');
+      loginForm.reset();
+      form.reset();
+      adminLoginFields.style.display = 'none';
+      studentLoginFields.style.display = 'block';
+      navBar.style.display = 'none';
+    }
+  }
+  document.getElementById('backToLoginEntry').addEventListener('click', returnToLogin);
+  document.getElementById('backToLoginManage').addEventListener('click', returnToLogin);
+
+  // Handle change password form (students)
+  const changePwdForm = document.getElementById('changePwdForm');
+  if(changePwdForm){
+    changePwdForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      document.getElementById('err-newPwd').textContent = '';
+      document.getElementById('err-confirmPwd').textContent = '';
+      const newPwd = (document.getElementById('newPwd')||{}).value || '';
+      const confirmPwd = (document.getElementById('confirmPwd')||{}).value || '';
+      if(newPwd.length < 6){ document.getElementById('err-newPwd').textContent = '密码长度至少为6位'; return; }
+      if(!/[A-Za-z]/.test(newPwd)){ document.getElementById('err-newPwd').textContent = '密码必须至少包含一个英文字母'; return; }
+      if(newPwd !== confirmPwd){ document.getElementById('err-confirmPwd').textContent = '两次输入的密码不一致'; return; }
+      const u = currentUser();
+      if(!u || u.role !== 'student'){ alert('未检测到学生登录信息，请重新登录'); clearUser(); showView('loginView'); return; }
+      // store password for this student
+      setStoredPassword(u.studentId, newPwd);
+      alert('密码修改成功，现在进入信息录入页面');
+      // go to entry view
+      enterAfterLogin(u);
+    });
+  }
+
+  // Success view handling (including student countdown)
+  function showSuccessView(){
+    const u = currentUser();
+    const confirmBtn = document.getElementById('successConfirm');
+    const continueBtn = document.getElementById('successContinue');
+    const viewAllBtn = document.getElementById('successViewAll');
+    const countdownEl = document.getElementById('studentCountdown');
+    // clear any existing countdown
+    if(window.__successTimer){ clearInterval(window.__successTimer); window.__successTimer = null; }
+
+    // default message or include saved student info
+    let msg = '学籍信息已保存成功。';
+    try{
+      const last = JSON.parse(sessionStorage.getItem('last_saved_student') || 'null');
+      if(last && last.studentId){
+        msg = `学号：${escapeHtml(last.studentId)}； 姓名：${escapeHtml(last.name || '')} 保存成功。`;
+      }
+    }catch(e){ /* ignore */ }
+    document.getElementById('successMsg').textContent = msg;
+
+    if(u && u.role === 'admin'){
+      // 管理员：显示两个按钮，隐藏倒计时
+      confirmBtn.style.display = 'none';
+      continueBtn.style.display = 'inline-block';
+      viewAllBtn.style.display = 'inline-block';
+      countdownEl.style.display = 'none';
+    } else {
+      // 学生：显示确认按钮与倒计时，自动登出并返回登录页
+      confirmBtn.style.display = 'inline-block';
+      continueBtn.style.display = 'none';
+      viewAllBtn.style.display = 'none';
+      countdownEl.style.display = 'block';
+      let remaining = 10;
+      countdownEl.textContent = `将于10秒后自动返回登录页面（倒计时：${remaining}）`;
+      window.__successTimer = setInterval(()=>{
+        remaining--;
+        if(remaining <= 0){
+          clearInterval(window.__successTimer); window.__successTimer = null;
+          // perform same action as confirm: 清除会话并返回登录页
+          clearUser();
+          showView('loginView');
+          loginForm.reset();
+          form.reset();
+          adminLoginFields.style.display = 'none';
+          studentLoginFields.style.display = 'block';
+          navBar.style.display = 'none';
+        } else {
+          countdownEl.textContent = `将于10秒后自动返回登录页面（倒计时：${remaining}）`;
+        }
+      }, 1000);
+    }
+    showView('successView');
+  }
+
+  // Success view button actions
+  const successConfirm = document.getElementById('successConfirm');
+  const successContinue = document.getElementById('successContinue');
+  const successViewAll = document.getElementById('successViewAll');
+  if(successConfirm){
+    successConfirm.addEventListener('click', ()=>{
+      // student confirms -> 清理可能的倒计时，登出并返回登录页
+      if(window.__successTimer){ clearInterval(window.__successTimer); window.__successTimer = null; }
+      clearUser();
+      showView('loginView');
+      loginForm.reset();
+      form.reset();
+      adminLoginFields.style.display = 'none';
+      studentLoginFields.style.display = 'block';
+      navBar.style.display = 'none';
+    });
+  }
+  if(successContinue){
+    successContinue.addEventListener('click', ()=>{
+      // admin continues to entry page (清除倒计时以防万一)
+      if(window.__successTimer){ clearInterval(window.__successTimer); window.__successTimer = null; }
+      delete form.dataset.editIndex;
+      // preserve some fields from last saved student (college, grade)
+      let last = null;
+      try{ last = JSON.parse(sessionStorage.getItem('last_saved_student') || 'null'); }catch(e){ last = null; }
+      form.reset();
+      if(last){
+        if(last.college) form.college.value = last.college;
+        if(last.grade) form.grade.value = last.grade;
+      }
+      showView('entryView');
+      setTimeout(()=>{ document.getElementById('studentId').focus(); }, 100);
+    });
+  }
+  if(successViewAll){
+    successViewAll.addEventListener('click', ()=>{
+      if(window.__successTimer){ clearInterval(window.__successTimer); window.__successTimer = null; }
+      renderManageTable();
+      showView('manageView');
+    });
+  }
+
+  // utility
+  function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }); }
+
+  // finished init
+  updateNav();
+
+  // 如果当前视图为登录页（首次加载可能在 init 时已设置为 loginView），确保启动提示闪烁
+  try{
+    const lv = document.getElementById('loginView');
+    if(lv && lv.classList.contains('active')){
+      if(typeof showInfoTooltip === 'function') showInfoTooltip();
+    }
+  }catch(e){/* ignore */}
+
+})();
+</script>
+</body>
+</html>
